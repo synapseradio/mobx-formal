@@ -7,8 +7,30 @@
 
 import { observable, ObservableMap } from 'mobx'
 import { all, ap, equals } from './lib/fn'
-import { FieldValidationResult, FormField, IForm, InternalFormField, ValidatedFieldError } from './types/form'
 export { isValidEmail, isRequired, isPhoneNumber, isValidUrl, makeRule, ValidationRuleArgs } from './validators'
+
+import InternalFormField = MobxFormal.InternalFormField
+import ValidatedFieldError = MobxFormal.InternalFormField
+import FieldValidationResult = MobxFormal.FieldValidationResult
+import FormField = MobxFormal.FormField
+
+export interface IForm {
+    fields: ObservableMap<InternalFormField>
+    hasBeenSubmitted: boolean
+    isValid: boolean
+
+    clearField(key: string): void
+    clearAllFields(): void
+    errorsOf(key: string): ValidatedFieldError
+    fieldIsValid(key: string): boolean
+    fieldValue(key: string): string
+    getFieldValidationResult(key: string): FieldValidationResult
+    validateField(key: string): void
+    validateAllFields(): void
+    handleChange(key: string): (e: Event) => void
+    values(args: { format?: (v: string) => string }): { [key: string]: string }
+}
+
 
 function isNullOrUndefined<T>(obj: T | null | undefined): obj is null | undefined {
     return typeof obj === "undefined" || obj === null
@@ -77,13 +99,16 @@ export class Form implements IForm {
      * Get a text string of any errors that may exist for a field
      */
 
+    // @ts-ignore
     public errorsOf: (key: string) => ValidatedFieldError = (key: string) => {
         const field: InternalFormField | undefined = this.fields.get(key)
 
         if (!isNullOrUndefined(field)) {
-            return field.hasOwnProperty('validationResult') && !isNullOrUndefined(field.validationResult)
-                ? (field.validationResult)[1]
-                : this.getFieldValidationResult(key)[1]
+            if (field.hasOwnProperty('validationResult') && !isNullOrUndefined(field.validationResult)) {
+                return field.validationResult[1]
+            } else {
+                return this.getFieldValidationResult(key)[1]
+            }
         } else {
             throw new Error('Field does not exist.')
         }
@@ -242,10 +267,10 @@ export class Form implements IForm {
 
     }
 
-    public values = () => {
+    public values = (args: { format?: (v: string) => string }) => {
         const values: { [key: string]: string } = {}
         for (const key of this.fields.keys()) {
-            values[key] = this.fieldValue(key)
+            values[key] = !isNullOrUndefined(args.format) ? args.format(this.fieldValue(key)) : this.fieldValue(key)
         }
         return values
     }

@@ -6,7 +6,7 @@
  */
 
 import { isEmail, isEmpty, isMobilePhone, isURL } from 'validator'
-import { FieldValidationResult } from '../types/form'
+
 
 // tslint:disable-next-line
 export type ValidationRuleArgs = {
@@ -34,7 +34,7 @@ export type ValidationRuleArgs = {
 export const makeRule:
     (args: ValidationRuleArgs) =>
         (str: string) =>
-            FieldValidationResult =
+            MobxFormal.FieldValidationResult =
     ({ rule, errorMessage, invert }) =>
 
         (str: string) => {
