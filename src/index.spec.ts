@@ -22,16 +22,26 @@ const testFields = {
 
 const form = new Form(testFields)
 
+test('Form values have not been modified at init', t => {
+    for (const key of form.fields.keys()) {
+        // @ts-ignore
+        t.false(form.fields.get(key).hasBeenModified)
+        // @ts-ignore
+        t.false(form.fields.get(key).hasOwnProperty('validationResult'))
+        t.true(form.errorsOf(key) === '' || form.errorsOf(key) === undefined)
+    }
+})
+
 test('Form::fieldValue', t => {
-    // @ts-ignore
-    form.fields.set('email', { ...form.fields.get('email'), value: 'wow' })
+
+    form.handleChange('email')('wow')
 
     t.is('wow', form.fieldValue('email'))
 })
 
 test('Form::clearField', t => {
-    // @ts-ignore
-    form.fields.set('email', { ...form.fields.get('email'), value: 'wow' })
+
+    form.handleChange('email')('wow')
 
     t.is('wow', form.fieldValue('email'))
 
@@ -41,21 +51,19 @@ test('Form::clearField', t => {
 })
 
 test('Form::errorsOf', t => {
-    // @ts-ignore
-    form.fields.set('email', { ...form.fields.get('email'), value: 'wow' })
+    form.clearField('email')
+    t.is('', form.fieldValue('email'))
+    t.true(form.errorsOf('email') === '')
+
+    form.handleChange('email')('wow')
 
     t.is('wow', form.fieldValue('email'))
 
-    form.validateField('email')
-
     t.true(form.errorsOf('email').length > 0)
 
-    // @ts-ignore
-    form.fields.set('email', { ...form.fields.get('email'), value: 'wow@wow.com' })
+    form.handleChange('email')('wow@wow.com')
 
     t.is('wow@wow.com', form.fieldValue('email'))
-
-    form.validateField('email')
 
     t.true(form.errorsOf('email').length === 0)
 
@@ -108,6 +116,14 @@ test('Form::validateAllFields', t => {
 
     t.true(form.errorsOf('email').length > 0)
     t.true(form.errorsOf('name').length > 0)
+
+    // make sure that all fields have been marked as modified
+    for (const key of form.fields.keys()) {
+        // if any of the fields are undefined
+        // it's an error, so, 
+        // @ts-ignore
+        t.true(form.fields.get(key).hasBeenModified)
+    }
 })
 
 test('Form::values', t => {

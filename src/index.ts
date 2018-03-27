@@ -55,7 +55,7 @@ export class Form implements IForm {
     constructor(fields: { [key: string]: FormField }) {
         Object.keys(fields).map(key => {
             // tslint:disable-next-line
-            this.fields.set(key, ({ ...fields[key], rules: fields[key].hasOwnProperty('rules') ? fields[key].rules : [] } as InternalFormField))
+            this.fields.set(key, ({ ...fields[key], rules: fields[key].hasOwnProperty('rules') ? fields[key].rules : [], hasBeenModified: false } as InternalFormField))
         })
     }
 
@@ -75,7 +75,14 @@ export class Form implements IForm {
         if (isNullOrUndefined(field)) {
             throw new Error('Field does not exist.')
         } else {
-            this.fields.set(key, { ...field, value: '' })
+            this.fields.set(
+                key,
+                {
+                    hasBeenModified: false,
+                    rules: field.rules,
+                    value: ''
+                }
+            )
         }
 
     }
@@ -104,8 +111,11 @@ export class Form implements IForm {
         if (!isNullOrUndefined(field)) {
             if (field.hasOwnProperty('validationResult') && !isNullOrUndefined(field.validationResult)) {
                 return field.validationResult[1]
-            } else {
+            } else if (field.hasBeenModified) {
                 return this.getFieldValidationResult(key)[1]
+            }
+            else {
+                return ''
             }
         } else {
             throw new Error('Field does not exist.')
@@ -215,10 +225,13 @@ export class Form implements IForm {
             throw new Error('Field does not exist.')
         }
 
-        this.fields.set(key, {
-            ...field,
-            validationResult: this.getFieldValidationResult(key)
-        })
+        if (field.hasBeenModified) {
+            this.fields.set(key, {
+                ...field,
+                validationResult: this.getFieldValidationResult(key)
+            })
+        }
+
     }
 
     /**
@@ -228,6 +241,18 @@ export class Form implements IForm {
 
     public validateAllFields = (): void => {
         for (const key of this.fields.keys()) {
+            // validateAllFields is meant to force user feedback.
+            // fields will only validate after they have been modified,
+            // so we need to make sure that all fields have been marked as such
+            this.fields.set(
+                key,
+                {
+                    ...this.fields.get(key),
+                    hasBeenModified: true
+                    // tslint:disable-next-line
+                } as InternalFormField
+            )
+
             this.validateField(key)
         }
     }
@@ -245,6 +270,14 @@ export class Form implements IForm {
 
         if (isNullOrUndefined(field)) {
             throw new Error('Field does not exist.')
+        }
+
+        // mark the field as modified.
+        // after this is set to,
+        // errors will appear when they exist
+        // for this field
+        if (!field.hasBeenModified) {
+            field.hasBeenModified = true
         }
 
         if (e.hasOwnProperty('target') && e.target.hasOwnProperty('value')) {

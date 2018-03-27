@@ -21,6 +21,9 @@ declare namespace MobxFormal {
     }
 
     interface InternalFormField {
+        // check if the field has been modified
+        // so that errors are not show prematurely
+        hasBeenModified: boolean
         // rules are required internally, and added automatically if they don't exist
         rules: ValidatedFieldRule[]
         value: ValidatedFieldValue
