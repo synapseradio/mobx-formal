@@ -1,5 +1,5 @@
 import { test } from 'ava'
-import { isRequired, isValidEmail } from '../validators';
+import { isRequired, isValidEmail } from '../../validators';
 import { all } from './all'
 import { ap } from './ap'
 

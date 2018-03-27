@@ -5,8 +5,8 @@
  * All must return FieldValidationResult
  */
 
-import FieldValidationResult = Form.FieldValidationResult
 import { isEmail, isEmpty, isMobilePhone, isURL } from 'validator'
+import { FieldValidationResult } from '../types/form'
 
 // tslint:disable-next-line
 export type ValidationRuleArgs = {
@@ -31,7 +31,7 @@ export type ValidationRuleArgs = {
 
 
 
-export const mkValidationRule:
+export const makeRule:
     (args: ValidationRuleArgs) =>
         (str: string) =>
             FieldValidationResult =
@@ -45,25 +45,25 @@ export const mkValidationRule:
             return [valid, valid ? '' : errorMessage.trim()]
         }
 
-export const isRequired = mkValidationRule({
+export const isRequired = makeRule({
     errorMessage: 'Field is required.',
     invert: true,
     rule: isEmpty,
 })
 
-export const isValidEmail = mkValidationRule({
+export const isValidEmail = makeRule({
     errorMessage: 'Must be a valid email address.',
     invert: false,
     rule: isEmail,
 })
 
-export const isValidUrl = mkValidationRule({
+export const isValidUrl = makeRule({
     errorMessage: 'Must be a valid URL.',
     invert: false,
     rule: isURL,
 })
 
-export const isPhoneNumber = mkValidationRule({
+export const isPhoneNumber = makeRule({
     errorMessage: 'Must be a valid phone number.',
     invert: false,
     rule: isMobilePhone

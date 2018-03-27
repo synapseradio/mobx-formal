@@ -1,6 +1,6 @@
 import { test } from 'ava'
 import { Form } from './'
-import { isRequired, isValidEmail } from './lib/validators';
+import { isRequired, isValidEmail } from './validators';
 
 const testFields = {
     email: {
@@ -92,4 +92,14 @@ test('Form::validateAllFields', t => {
 
     t.true(form.errorsOf('email').length > 0)
     t.true(form.errorsOf('name').length > 0)
+})
+
+test('Form::values', t => {
+    form.clearAllFields()
+
+    t.deepEqual({ email: '', name: '' }, form.values())
+    // @ts-ignore
+    form.handleChange('email')({ target: { value: 'wow@wow.com' } })
+
+    t.deepEqual({ email: 'wow@wow.com', name: '' }, form.values())
 })

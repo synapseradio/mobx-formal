@@ -5,11 +5,10 @@
  * held in FormStore, these handle form operations for a form
  */
 
-import FieldValidationResult = Form.FieldValidationResult
-import ValidatedFieldError = Form.ValidatedFieldError
-import IForm = Form.IForm
-import FormField = Form.FormField
+import { observable, ObservableMap } from 'mobx'
 import { all, ap, equals } from './lib/fn'
+import { FieldValidationResult, FormField, IForm, ValidatedFieldError } from './types/form'
+export { isValidEmail, isRequired, isPhoneNumber, isValidUrl, makeRule, ValidationRuleArgs } from './validators'
 
 function isNullOrUndefined<T>(obj: T | null | undefined): obj is null | undefined {
     return typeof obj === "undefined" || obj === null
@@ -23,7 +22,7 @@ export class Form implements IForm {
      *
      */
 
-    public fields = new Map<string, FormField>()
+    public fields: ObservableMap<string, FormField> = observable.map({})
 
     /**
      * hasBeenSubmitted
@@ -39,17 +38,22 @@ export class Form implements IForm {
     }
 
     /**
+     * create a field out of a loose field object
+     */
+
+
+    /**
      * clearField
      * 
      * clear a single filed of this form
      */
 
     public clearField = (key: string): void => {
-        const existingField = this.fields.get(key)
-        if (isNullOrUndefined(existingField)) {
+        const field = this.fields.get(key)
+        if (isNullOrUndefined(field)) {
             return
         } else {
-            this.fields.set(key, { ...existingField, value: '' })
+            this.fields.set(key, { ...field, value: '' })
         }
 
     }
@@ -73,11 +77,11 @@ export class Form implements IForm {
      */
 
     public errorsOf: (key: string) => ValidatedFieldError = (key: string) => {
-        const existingField: FormField | undefined = this.fields.get(key)
+        const field: FormField | undefined = this.fields.get(key)
 
-        if (!isNullOrUndefined(existingField)) {
-            return existingField.hasOwnProperty('validationResult') && !isNullOrUndefined(existingField.validationResult)
-                ? (existingField.validationResult)[1]
+        if (!isNullOrUndefined(field)) {
+            return field.hasOwnProperty('validationResult') && !isNullOrUndefined(field.validationResult)
+                ? (field.validationResult)[1]
                 : this.getFieldValidationResult(key)[1]
         } else {
             throw new Error('Field does not exist.')
@@ -108,22 +112,22 @@ export class Form implements IForm {
      */
 
     public fieldIsValid = (key: string): boolean => {
-        const existingField = this.fields.get(key)
+        const field = this.fields.get(key)
 
-        if (isNullOrUndefined(existingField)) {
+        if (isNullOrUndefined(field)) {
             return false
         }
 
         return (
             // if a field doesn't have rules or a validation result, it's valid
-            (!existingField.hasOwnProperty('validationResult') && !existingField.rules.length) ||
+            (!field.hasOwnProperty('validationResult') && !field.rules.length) ||
 
             // if it does have rules and the results are good, it's valid
             // note that fields don't have results until one is touched,
             // so if an empty form has any guarded fields, it's invalid.
-            (existingField.hasOwnProperty('validationResult')
-                && !isNullOrUndefined(existingField.validationResult)
-                && (existingField.validationResult[0] as boolean))
+            ((field.hasOwnProperty('validationResult')
+                && !isNullOrUndefined(field.validationResult)
+                && (field.validationResult[0] as boolean)))
         )
     }
 
@@ -135,11 +139,11 @@ export class Form implements IForm {
      */
 
     public fieldValue = (key: string): string => {
-        const existingField = this.fields.get(key)
-        if (isNullOrUndefined(existingField)) {
+        const field = this.fields.get(key)
+        if (isNullOrUndefined(field)) {
             throw new Error('Field does not exist')
         } else {
-            return existingField.value
+            return field.value
         }
     }
 
@@ -182,13 +186,13 @@ export class Form implements IForm {
      * 
      */
     public validateField(key: string): void {
-        const existingField = this.fields.get(key)
-        if (isNullOrUndefined(existingField)) {
+        const field = this.fields.get(key)
+        if (isNullOrUndefined(field)) {
             throw new Error('Field does not exist.')
         }
 
         this.fields.set(key, {
-            ...existingField,
+            ...field,
             validationResult: this.getFieldValidationResult(key)
         })
     }
@@ -224,6 +228,17 @@ export class Form implements IForm {
             value: (e.target as HTMLInputElement).value
         })
 
-        this.validateField(key)
+        if (field.rules.length) {
+            this.validateField(key)
+        }
+
+    }
+
+    public values = () => {
+        const values: { [key: string]: string } = {}
+        for (const key of this.fields.keys()) {
+            values[key] = this.fieldValue(key)
+        }
+        return values
     }
 }
