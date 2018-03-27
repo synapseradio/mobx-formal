@@ -10,7 +10,6 @@ import { all, ap, equals } from './lib/fn'
 export { isValidEmail, isRequired, isPhoneNumber, isValidUrl, makeRule, ValidationRuleArgs } from './validators'
 
 import InternalFormField = MobxFormal.InternalFormField
-import ValidatedFieldError = MobxFormal.InternalFormField
 import FieldValidationResult = MobxFormal.FieldValidationResult
 import FormField = MobxFormal.FormField
 
@@ -21,14 +20,14 @@ export interface IForm {
 
     clearField(key: string): void
     clearAllFields(): void
-    errorsOf(key: string): ValidatedFieldError
+    errorsOf(key: string): string
     fieldIsValid(key: string): boolean
     fieldValue(key: string): string
     getFieldValidationResult(key: string): FieldValidationResult
     validateField(key: string): void
     validateAllFields(): void
     handleChange(key: string): (e: Event) => void
-    values(args: { format?: (v: string) => string }): { [key: string]: string }
+    values(opts: { format: (v: string) => string }): { [key: string]: string }
 }
 
 
@@ -74,7 +73,7 @@ export class Form implements IForm {
     public clearField = (key: string): void => {
         const field = this.fields.get(key)
         if (isNullOrUndefined(field)) {
-            return
+            throw new Error('Field does not exist.')
         } else {
             this.fields.set(key, { ...field, value: '' })
         }
@@ -99,8 +98,7 @@ export class Form implements IForm {
      * Get a text string of any errors that may exist for a field
      */
 
-    // @ts-ignore
-    public errorsOf: (key: string) => ValidatedFieldError = (key: string) => {
+    public errorsOf: (key: string) => string = (key: string) => {
         const field: InternalFormField | undefined = this.fields.get(key)
 
         if (!isNullOrUndefined(field)) {
@@ -267,11 +265,13 @@ export class Form implements IForm {
 
     }
 
-    public values = (args: { format?: (v: string) => string }) => {
+    public values = (opts = { format: (v: string) => v }) => {
         const values: { [key: string]: string } = {}
+
         for (const key of this.fields.keys()) {
-            values[key] = !isNullOrUndefined(args.format) ? args.format(this.fieldValue(key)) : this.fieldValue(key)
+            values[key] = opts.format(this.fieldValue(key))
         }
+
         return values
     }
 }

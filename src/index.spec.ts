@@ -76,7 +76,7 @@ test('Form::getFieldValidationResult', t => {
 
 test('Form::handleChange valid', t => {
     // @ts-ignore
-    form.handleChange('email')({ target: { value: 'test@gmail.com' } })
+    form.handleChange('email')('test@gmail.com')
 
     t.true(form.fieldValue('email') === 'test@gmail.com')
     // tslint:disable-next-line
@@ -86,7 +86,7 @@ test('Form::handleChange valid', t => {
 test('Form::handleChange invalid', t => {
 
     // @ts-ignore
-    form.handleChange('email')({ target: { value: 'wow@' } })
+    form.handleChange('email')('wow@')
 
     const errorString = form.getFieldValidationResult('email')[1]
     t.true(form.fieldValue('email') === 'wow@')
@@ -113,11 +113,17 @@ test('Form::validateAllFields', t => {
 test('Form::values', t => {
     form.clearAllFields()
 
-    t.deepEqual({ date: '', email: '', name: '' }, form.values())
-    // @ts-ignore
-    form.handleChange('email')({ target: { value: 'wow@wow.com' } })
+    form.handleChange('email')('wow@wow.com')
 
     t.deepEqual({ date: '', email: 'wow@wow.com', name: '' }, form.values())
+})
 
+test('Form::values with format function', t => {
+    form.clearAllFields()
 
+    form.handleChange('name')('Matt Damon')
+
+    t.deepEqual({ date: '', email: '', name: 'Matt Damon' }, form.values())
+
+    t.deepEqual({ date: '', email: '', name: 'MATT DAMON' }, form.values({ format: str => str.toUpperCase() }))
 })
