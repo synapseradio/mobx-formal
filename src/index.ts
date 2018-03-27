@@ -7,7 +7,7 @@
 
 import { observable, ObservableMap } from 'mobx'
 import { all, ap, equals } from './lib/fn'
-import { FieldValidationResult, FormField, IForm, ValidatedFieldError } from './types/form'
+import { FieldValidationResult, FormField, IForm, InternalFormField, ValidatedFieldError } from './types/form'
 export { isValidEmail, isRequired, isPhoneNumber, isValidUrl, makeRule, ValidationRuleArgs } from './validators'
 
 function isNullOrUndefined<T>(obj: T | null | undefined): obj is null | undefined {
@@ -22,7 +22,7 @@ export class Form implements IForm {
      *
      */
 
-    public fields: ObservableMap<string, FormField> = observable.map({})
+    public fields: ObservableMap<InternalFormField> = observable.map({})
 
     /**
      * hasBeenSubmitted
@@ -33,7 +33,8 @@ export class Form implements IForm {
 
     constructor(fields: { [key: string]: FormField }) {
         Object.keys(fields).map(key => {
-            this.fields.set(key, fields[key])
+            // tslint:disable-next-line
+            this.fields.set(key, ({ ...fields[key], rules: fields[key].hasOwnProperty('rules') ? fields[key].rules : [] } as InternalFormField))
         })
     }
 
@@ -77,7 +78,7 @@ export class Form implements IForm {
      */
 
     public errorsOf: (key: string) => ValidatedFieldError = (key: string) => {
-        const field: FormField | undefined = this.fields.get(key)
+        const field: InternalFormField | undefined = this.fields.get(key)
 
         if (!isNullOrUndefined(field)) {
             return field.hasOwnProperty('validationResult') && !isNullOrUndefined(field.validationResult)
@@ -120,7 +121,7 @@ export class Form implements IForm {
 
         return (
             // if a field doesn't have rules or a validation result, it's valid
-            (!field.hasOwnProperty('validationResult') && !field.rules.length) ||
+            (!field.hasOwnProperty('validationResult') && (!field.rules.length)) ||
 
             // if it does have rules and the results are good, it's valid
             // note that fields don't have results until one is touched,
@@ -155,14 +156,14 @@ export class Form implements IForm {
 
     public getFieldValidationResult = (key: string): FieldValidationResult => {
 
-        const field: FormField | undefined = this.fields.get(key)
+        const field: InternalFormField | undefined = this.fields.get(key)
 
         if (isNullOrUndefined(field)) {
             throw new Error('Field does not exist.')
         }
 
-        if (field.hasOwnProperty('rules')) {
-            const results = ap<any>(field.rules)([field.value])
+        if (field.rules.length) {
+            const results = ap<any>(field.rules!)([field.value])
 
             return results.reduce(
                 (prev, next) => [
@@ -214,19 +215,26 @@ export class Form implements IForm {
      *
      */
 
-    public handleChange = (key: string) => (e: Event): void => {
+    public handleChange = (key: string) => (e: any): void => {
         // apply all rules to the value of the field
 
-        const field: FormField | undefined = this.fields.get(key)
+        const field: InternalFormField | undefined = this.fields.get(key)
 
         if (isNullOrUndefined(field)) {
             throw new Error('Field does not exist.')
         }
 
-        this.fields.set(key, {
-            ...field,
-            value: (e.target as HTMLInputElement).value
-        })
+        if (e.hasOwnProperty('target') && e.target.hasOwnProperty('value')) {
+            this.fields.set(key, {
+                ...field,
+                value: (e.target as HTMLInputElement).value
+            })
+        } else {
+            this.fields.set(key, {
+                ...field,
+                value: e
+            })
+        }
 
         if (field.rules.length) {
             this.validateField(key)

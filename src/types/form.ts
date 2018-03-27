@@ -16,13 +16,20 @@ export type FieldValidationResult = [FieldValidationStatus, ValidatedFieldError]
 export type ValidatedFieldRule = (v: string) => FieldValidationResult
 
 export interface FormField {
+    rules?: ValidatedFieldRule[]
+    value: ValidatedFieldValue
+    validationResult?: FieldValidationResult
+}
+
+export interface InternalFormField {
+    // rules are required internally, and added automatically if they don't exist
     rules: ValidatedFieldRule[]
     value: ValidatedFieldValue
     validationResult?: FieldValidationResult
 }
 
 export interface IForm {
-    fields: ObservableMap<string, FormField>
+    fields: ObservableMap<InternalFormField>
     hasBeenSubmitted: boolean
     isValid: boolean
 

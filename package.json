@@ -1,5 +1,5 @@
 {
-  "name": "formalized",
+  "name": "mobx-formal",
   "version": "1.0.3",
   "description": "small library to make form handling easier",
   "main": "build/main/index.js",

@@ -3,14 +3,21 @@ import { Form } from './'
 import { isRequired, isValidEmail } from './validators';
 
 const testFields = {
+    date: {
+        rules: [],
+        value: ''
+    },
+
     email: {
         rules: [isRequired, isValidEmail],
         value: ''
     },
+
     name: {
         rules: [isRequired],
         value: ''
     },
+
 }
 
 const form = new Form(testFields)
@@ -87,6 +94,15 @@ test('Form::handleChange invalid', t => {
     t.false(form.fieldIsValid('email'))
 })
 
+test('Form::handleChange with custom value', t => {
+    const now = Date.now()
+
+    form.handleChange('date')(now.toLocaleString())
+
+    // tslint:disable-next-line
+    t.true(form.fieldValue('date') === now.toLocaleString())
+})
+
 test('Form::validateAllFields', t => {
     form.validateAllFields()
 
@@ -97,9 +113,11 @@ test('Form::validateAllFields', t => {
 test('Form::values', t => {
     form.clearAllFields()
 
-    t.deepEqual({ email: '', name: '' }, form.values())
+    t.deepEqual({ date: '', email: '', name: '' }, form.values())
     // @ts-ignore
     form.handleChange('email')({ target: { value: 'wow@wow.com' } })
 
-    t.deepEqual({ email: 'wow@wow.com', name: '' }, form.values())
+    t.deepEqual({ date: '', email: 'wow@wow.com', name: '' }, form.values())
+
+
 })
